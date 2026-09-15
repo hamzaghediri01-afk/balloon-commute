@@ -1,0 +1,38 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but it is present here for immediate project import.
+
+config_version=5
+
+[application]
+
+config/name="Balloon Commute"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=540
+window/size/viewport_height=960
+window/size/window_width_override=540
+window/size/window_height_override=960
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[layer_names]
+
+2d_physics/layer_1="PlayerBody"
+2d_physics/layer_2="PlayerHurtbox"
+2d_physics/layer_3="Hazards"
+2d_physics/layer_4="Collectibles"
+2d_physics/layer_5="KillZone"
+
+[physics]
+
+2d/default_gravity=980.0
+2d/default_gravity_vector=Vector2(0, 1)

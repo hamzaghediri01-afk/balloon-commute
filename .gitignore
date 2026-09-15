@@ -1,0 +1,14 @@
+# Godot 4 engine files
+.godot/
+.import/
+export_credentials.cfg
+
+# Build output
+build/
+*.apk
+*.aab
+
+# Keystores & keys
+*.keystore
+*.jks
+*.key

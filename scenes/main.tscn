@@ -1,0 +1,148 @@
+[gd_scene load_steps=9 format=3 uid="uid://b8commute0001"]
+
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="1_mgr"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="2_player"]
+[ext_resource type="Script" path="res://scripts/vertical_camera.gd" id="3_cam"]
+[ext_resource type="Script" path="res://scripts/spawner.gd" id="4_spawner"]
+[ext_resource type="Script" path="res://scripts/input_handler.gd" id="5_input"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="6_hud"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_player"]
+radius = 14.0
+height = 42.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kill"]
+size = Vector2(1200, 80)
+
+[node name="Main" type="Node2D" node_paths=PackedStringArray("player", "camera", "spawner", "input_handler")]
+script = ExtResource("1_mgr")
+player = NodePath("Player")
+camera = NodePath("VerticalCamera")
+spawner = NodePath("Spawner")
+input_handler = NodePath("InputHandler")
+
+[node name="VerticalCamera" type="Camera2D" parent="." node_paths=PackedStringArray("target")]
+position = Vector2(270, 700)
+position_smoothing_enabled = true
+script = ExtResource("3_cam")
+target = NodePath("../Player")
+
+[node name="KillZone" type="Area2D" parent="VerticalCamera"]
+position = Vector2(0, 560)
+collision_layer = 16
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="VerticalCamera/KillZone"]
+shape = SubResource("RectangleShape2D_kill")
+
+[node name="Player" type="RigidBody2D" parent="."]
+position = Vector2(270, 750)
+collision_layer = 1
+collision_mask = 1
+mass = 1.0
+script = ExtResource("2_player")
+
+[node name="BodyShape" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CapsuleShape2D_player")
+
+[node name="Hurtbox" type="Area2D" parent="Player"]
+collision_layer = 2
+collision_mask = 28
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Player/Hurtbox"]
+shape = SubResource("CapsuleShape2D_player")
+
+[node name="Balloons" type="Node2D" parent="Player"]
+
+[node name="Spawner" type="Node2D" parent="." node_paths=PackedStringArray("camera", "player")]
+script = ExtResource("4_spawner")
+camera = NodePath("../VerticalCamera")
+player = NodePath("../Player")
+
+[node name="InputHandler" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("5_input")
+player = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("game_manager", "player")]
+script = ExtResource("6_hud")
+game_manager = NodePath("..")
+player = NodePath("../Player")
+
+[node name="Control" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="HBoxContainer" parent="HUD/Control"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 60.0
+grow_horizontal = 2
+alignment = 1
+
+[node name="AltitudeLabel" type="Label" parent="HUD/Control/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0 m"
+
+[node name="BalloonIndicators" type="HBoxContainer" parent="HUD/Control/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BestLabel" type="Label" parent="HUD/Control/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Best: 0 m"
+horizontal_alignment = 2
+
+[node name="GameOverPanel" type="PanelContainer" parent="HUD/Control"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -140.0
+offset_right = 160.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="HUD/Control/GameOverPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="HUD/Control/GameOverPanel/VBox"]
+layout_mode = 2
+text = "COMMUTE FAILED"
+horizontal_alignment = 1
+
+[node name="ReasonLabel" type="Label" parent="HUD/Control/GameOverPanel/VBox"]
+layout_mode = 2
+text = "Hazard Collision"
+horizontal_alignment = 1
+
+[node name="FinalScoreLabel" type="Label" parent="HUD/Control/GameOverPanel/VBox"]
+layout_mode = 2
+text = "Altitude: 0 m"
+horizontal_alignment = 1
+
+[node name="BestScoreLabel" type="Label" parent="HUD/Control/GameOverPanel/VBox"]
+layout_mode = 2
+text = "All-time Record: 0 m"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="HUD/Control/GameOverPanel/VBox"]
+layout_mode = 2
+text = "Try Again"

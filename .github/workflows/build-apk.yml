@@ -1,0 +1,110 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-apk:
+    name: Build Android APK (Godot 4.3)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android Build Tools
+        run: |
+          sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+
+      - name: Download & Install Godot 4.3 + Export Templates
+        run: |
+          echo "=== Downloading Godot 4.3 Linux Headless ==="
+          curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          rm godot.zip
+
+          echo "=== Downloading Godot 4.3 Export Templates ==="
+          curl -L -o templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/4.3.stable
+          unzip -q templates.tpz -d /tmp/godot_templates
+          mv /tmp/godot_templates/templates/* ~/.local/share/godot/export_templates/4.3.stable/
+          rm -rf templates.tpz /tmp/godot_templates
+
+      - name: Generate Debug Keystore & Configure Editor Settings
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA -keysize 2048 -validity 10000
+
+          mkdir -p ~/.config/godot
+          cat << EOF > ~/.config/godot/editor_settings-4.tres
+[gd_resource type="EditorSettings" format=3]
+
+[resource]
+export/android/android_sdk_path = "$ANDROID_HOME"
+export/android/debug_keystore = "$HOME/.android/debug.keystore"
+export/android/debug_keystore_user = "androiddebugkey"
+export/android/debug_keystore_pass = "android"
+EOF
+
+      - name: Export Android APK
+        run: |
+          mkdir -p build
+          # Initial import to generate .godot cache
+          godot --headless --editor --quit || true
+          # Export APK
+          godot --headless --verbose --export-debug "Android" build/BalloonCommute.apk
+          ls -lh build/
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BalloonCommute-Android-APK
+          path: build/BalloonCommute.apk
+          if-no-files-found: error
+
+      - name: Create or Update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="v1.0.0"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME exists. Uploading new APK asset..."
+            gh release upload "$TAG_NAME" build/BalloonCommute.apk --clobber
+          else
+            echo "Creating Release $TAG_NAME..."
+            gh release create "$TAG_NAME" build/BalloonCommute.apk \
+              --title "Balloon Commute $TAG_NAME" \
+              --notes "### 🎈 Balloon Commute - Android APK Ready to Download!
+
+Direct APK Download: [BalloonCommute.apk](https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/BalloonCommute.apk)
+
+#### Core Highlights:
+- 🎈 **Physics Pendulum Float**: Commuter suspended from 4 balloons with dynamic upward lift.
+- 🕹️ **Touch Steering**: Tap left screen half to pop leftmost balloon (steers right); tap right to steer left.
+- ⚠️ **Procedural Hazards**: Horizontal flying birds, high-voltage power lines with gaps, and spinning ceiling fans.
+- 🎁 **Replenish Pickups**: Collect bonus balloons to restore lost lift before entering freefall." \
+              --latest
+          fi
